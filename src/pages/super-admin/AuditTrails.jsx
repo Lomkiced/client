@@ -17,7 +17,7 @@ const AuditTrails = () => {
     setLoading(true);
     try {
         const token = localStorage.getItem('dost_token');
-        const response = await fetch('http://localhost:5000/api/audit', {
+        const response = await fetch('http://localhost:5000/api/audit/filter', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
