@@ -5,7 +5,7 @@ import { useCodex } from '../../context/CodexContext';
 import { useRegions } from '../../context/RegionContext';
 import { useRegistry } from '../../context/RegistryContext';
 
-// --- ICONS ---
+// ... (Keep existing Icons) ...
 const Icons = {
   RegionFolder: () => <svg className="w-24 h-24 text-blue-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>,
   CodexFolder: () => <svg className="w-20 h-20 text-amber-400 drop-shadow-md" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>,
@@ -36,11 +36,11 @@ const Registry = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState(null);
 
-  // --- 🔒 SMART SECURITY FILTER ---
+  // --- 🔒 SMART SECURITY FILTER (FIXED) ---
   const visibleRegions = regions.filter(region => {
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
-    // Loose equality (==) allows string/number match (e.g. "4" == 4)
-    const isAssigned = region.id == user?.region;
+    // FIX: Changed user?.region to user?.region_id to match Backend response
+    const isAssigned = region.id == user?.region_id; 
     const matchesSearch = region.name.toLowerCase().includes(searchTerm.toLowerCase());
     return (isSuperAdmin || isAssigned) && matchesSearch;
   });
@@ -72,9 +72,6 @@ const Registry = () => {
     setActiveCategory(category);
     setViewMode('Active');
     
-    // Safety check: Ensure we are sending the ID
-    console.log("Entering Category:", category.name, "Region ID:", activeRegion.id);
-
     fetchRecords({ 
         region: activeRegion.id, 
         category: category.name, 
