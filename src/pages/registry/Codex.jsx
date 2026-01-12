@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCodex } from '../../context/CodexContext';
 import { useRegions } from '../../context/RegionContext';
 
-// --- ICONS (Same as before) ---
+// --- ICONS ---
 const Icons = {
   Folder: () => <svg className="w-16 h-16 text-amber-400 drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>,
   FolderOpen: () => <svg className="w-16 h-16 text-amber-400 drop-shadow-md" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>,
@@ -14,7 +14,8 @@ const Icons = {
   Trash: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   Globe: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>,
   MapPin: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-  Clock: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+  Clock: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  Lock: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
 };
 
 const Codex = () => {
@@ -38,14 +39,32 @@ const Codex = () => {
     ? types.filter(t => t.category_id === activeFolder.category_id) 
     : [];
 
-  // --- STRATEGIC HANDLERS ---
+  // --- PERMISSION CHECK ---
+  // Allow if Super Admin OR Regional Admin (Role name usually 'REGIONAL_ADMIN' or 'ADMIN')
+  const canEdit = user.role === 'SUPER_ADMIN' || user.role === 'REGIONAL_ADMIN' || user.role === 'ADMIN';
+  const isSuperAdmin = user.role === 'SUPER_ADMIN';
+
+  // Helper: Get Name of Current User's Region
+  const getUserRegionName = () => {
+    const regionObj = regions.find(r => r.id == user.region_id);
+    return regionObj ? regionObj.name : '';
+  };
+
+  // --- HANDLERS ---
 
   const handleCreate = () => {
     if (activeFolder) {
+      // Create Rule inside a folder
       setRuleForm({ type_name: '', retention_period: '' });
       setIsRuleModalOpen(true);
     } else {
-      setCatForm({ name: '', region: 'Global' });
+      // Create Folder
+      // SMART PRE-FILL: If Regional Admin, lock to their region
+      if (isSuperAdmin) {
+          setCatForm({ name: '', region: 'Global' });
+      } else {
+          setCatForm({ name: '', region: getUserRegionName() });
+      }
       setIsCategoryModalOpen(true);
     }
   };
@@ -53,7 +72,6 @@ const Codex = () => {
   const submitCategory = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Ensure we await the context action so we don't close modal too early
     await addCategory(catForm);
     setIsSubmitting(false);
     setIsCategoryModalOpen(false);
@@ -66,7 +84,7 @@ const Codex = () => {
     setIsSubmitting(true);
     await addType({
       ...ruleForm,
-      category_id: activeFolder.category_id, // Explicit ID binding
+      category_id: activeFolder.category_id,
       region: activeFolder.region
     });
     setIsSubmitting(false);
@@ -104,8 +122,8 @@ const Codex = () => {
           </div>
         </div>
 
-        {/* Action Button */}
-        {user.role === 'SUPER_ADMIN' && (
+        {/* Action Button: Now visible to Regional Admins too */}
+        {canEdit && (
           <button 
             onClick={handleCreate}
             className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-lg shadow-slate-300 font-bold text-sm flex items-center gap-2 transition-all transform active:scale-95"
@@ -133,12 +151,13 @@ const Codex = () => {
                  </div>
                  <h3 className="font-bold text-slate-700 text-lg group-hover:text-indigo-700 transition-colors mb-1">{cat.name}</h3>
                  
-                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2">
+                 <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider mt-2 ${cat.region === 'Global' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
                     {cat.region === 'Global' ? <Icons.Globe /> : <Icons.MapPin />}
                     {cat.region}
                  </div>
 
-                 {user.role === 'SUPER_ADMIN' && (
+                 {/* Delete: Only Super Admin OR Owner of that region folder */}
+                 {(isSuperAdmin || (canEdit && cat.region === getUserRegionName())) && (
                     <button 
                       onClick={(e) => { e.stopPropagation(); deleteCategory(cat.category_id); }}
                       className="absolute top-3 right-3 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
@@ -175,7 +194,7 @@ const Codex = () => {
                              Retention: <span className="text-slate-700">{rule.retention_period}</span>
                           </div>
                        </div>
-                       {user.role === 'SUPER_ADMIN' && (
+                       {(isSuperAdmin || (canEdit && activeFolder.region === getUserRegionName())) && (
                           <button 
                             onClick={() => deleteType(rule.type_id)}
                             className="absolute top-4 right-4 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -186,7 +205,8 @@ const Codex = () => {
                     </div>
                  ))}
 
-                 {user.role === 'SUPER_ADMIN' && (
+                 {/* Add Rule Button: Only if user has rights to this folder's region */}
+                 {(isSuperAdmin || (canEdit && activeFolder.region === getUserRegionName())) && (
                     <button 
                       onClick={handleCreate}
                       className="border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 rounded-xl p-5 flex flex-col items-center justify-center text-slate-400 hover:text-indigo-600 transition-all gap-2 h-full min-h-[120px]"
@@ -213,11 +233,27 @@ const Codex = () => {
                         <input className="w-full border border-slate-300 p-3 rounded-xl text-sm mt-1 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-700" placeholder="e.g. Administrative" value={catForm.name} onChange={e => setCatForm({...catForm, name: e.target.value})} required autoFocus />
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Applicable Region</label>
-                        <select className="w-full border border-slate-300 p-3 rounded-xl text-sm mt-1 focus:ring-2 focus:ring-indigo-500 outline-none bg-white" value={catForm.region} onChange={e => setCatForm({...catForm, region: e.target.value})}>
-                            <option value="Global">Global (All Regions)</option>
-                            {regions.map(r => <option key={r.id} value={r.name}>{r.name} Only</option>)}
-                        </select>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex justify-between">
+                            Applicable Region
+                            {!isSuperAdmin && <span className="text-[10px] text-indigo-600 flex items-center gap-1"><Icons.Lock /> Locked</span>}
+                        </label>
+                        
+                        {isSuperAdmin ? (
+                            <select className="w-full border border-slate-300 p-3 rounded-xl text-sm mt-1 focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer" value={catForm.region} onChange={e => setCatForm({...catForm, region: e.target.value})}>
+                                <option value="Global">Global (All Regions)</option>
+                                {regions.map(r => <option key={r.id} value={r.name}>{r.name} Only</option>)}
+                            </select>
+                        ) : (
+                            // LOCKED INPUT FOR REGIONAL ADMIN
+                            <div className="relative mt-1">
+                                <input 
+                                    className="w-full border border-slate-200 bg-slate-100 p-3 rounded-xl text-sm text-slate-500 font-bold outline-none cursor-not-allowed" 
+                                    value={catForm.region} 
+                                    readOnly 
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.MapPin /></div>
+                            </div>
+                        )}
                     </div>
                     <div className="flex justify-end gap-3 pt-4">
                         <button type="button" onClick={() => setIsCategoryModalOpen(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-sm">Cancel</button>
