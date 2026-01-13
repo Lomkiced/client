@@ -1,250 +1,105 @@
-import { motion } from 'framer-motion';
-import { Briefcase, Check, ChevronRight, Loader2, Lock, Shield, User } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-// --- CONFIGURATION ---
-const ROLES = [
-  {
-    id: 'super',
-    label: 'Super Admin',
-    desc: 'Central Command',
-    username: 'super',
-    color: 'bg-violet-600',
-    gradient: 'from-violet-600 to-indigo-600',
-    icon: Shield
-  },
-  {
-    id: 'admin',
-    label: 'Regional Admin',
-    desc: 'Region 1 Office',
-    username: 'admin',
-    color: 'bg-blue-600',
-    gradient: 'from-blue-600 to-cyan-600',
-    icon: Briefcase
-  },
-  {
-    id: 'staff',
-    label: 'Staff Member',
-    desc: 'Encoder / Staff',
-    username: 'staff',
-    color: 'bg-emerald-500',
-    gradient: 'from-emerald-500 to-teal-500',
-    icon: User
-  }
-];
+const Icons = {
+  User: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+  Lock: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
+  Eye: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
+  EyeOff: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>,
+  ArrowRight: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+};
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   
-  const [selectedRole, setSelectedRole] = useState(ROLES[0]);
-  const [credential, setCredential] = useState(ROLES[0].username);
-  const [password, setPassword] = useState('password123');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Update form when role changes
-  const handleRoleSelect = (role) => {
-    setSelectedRole(role);
-    setCredential(role.username);
-    setPassword('password123');
-  };
+  const [formData, setFormData] = useState({ username: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [status, setStatus] = useState('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Simulate network delay for animation effect
-    await new Promise(r => setTimeout(r, 800));
-    
-    const success = await login(credential, password);
-    if (success) {
-      navigate('/dashboard');
-    } else {
-      setIsLoading(false);
+    setStatus('loading');
+    setErrorMessage('');
+
+    try {
+      // Connect to Backend
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setStatus('success');
+        setTimeout(() => {
+            login(data.token, data.user);
+            // Redirect based on Role
+            if (data.user.role === 'SUPER_ADMIN') navigate('/super-admin');
+            else if (data.user.role && data.user.role.includes('ADMIN')) navigate('/admin');
+            else navigate('/staff');
+        }, 800);
+      } else {
+        setStatus('error');
+        setErrorMessage(data.message || 'Login failed');
+      }
+    } catch (err) {
+      setStatus('error');
+      setErrorMessage('Unable to connect to server');
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-slate-50 overflow-hidden">
+    <div className="relative min-h-screen w-full overflow-hidden bg-slate-900 flex items-center justify-center font-sans">
       
-      {/* LEFT PANEL: ANIMATED HERO (Reference Style) */}
-      <div className="hidden lg:flex w-1/2 relative bg-slate-900 items-center justify-center overflow-hidden">
-        {/* Animated Background Mesh */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${selectedRole.gradient} opacity-20 transition-all duration-1000`} />
-        
-        {/* Animated Orbs */}
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className={`absolute -top-20 -left-20 w-96 h-96 rounded-full blur-[100px] ${selectedRole.color} opacity-40`} 
-        />
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.5, 1],
-            x: [0, 100, 0],
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] bg-indigo-500/20" 
-        />
-
-        {/* Content */}
-        <div className="relative z-10 p-12 text-white max-w-lg">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center mb-8"
-          >
-            <span className="text-3xl font-bold">R</span>
-          </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-5xl font-bold tracking-tight mb-6"
-          >
-            DOST-RMS <br/>
-            <span className="text-white/60 text-4xl">Enterprise</span>
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-lg text-white/60 leading-relaxed"
-          >
-            Secure, efficient, and centralized records management system. 
-            Streamlining governance for Region 1.
-          </motion.p>
-
-          {/* Floating Pill */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-12 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm"
-          >
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-sm font-medium text-white/80">System Operational</span>
-          </motion.div>
-        </div>
+      {/* Background Effects */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-500/30 rounded-full blur-[120px] animate-pulse delay-1000"></div>
       </div>
 
-      {/* RIGHT PANEL: INTERACTIVE FORM */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 relative bg-white">
-        <div className="w-full max-w-md space-y-8">
-          
-          {/* Header */}
-          <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
-            <p className="text-slate-500 mt-2">Please select your access level to continue.</p>
-          </div>
+      {/* Login Card */}
+      <div className="relative z-10 w-full max-w-md p-6">
+        <div className="text-center mb-8 space-y-4">
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-tight">DOST RMS</h1>
+            <p className="text-slate-400 text-sm font-medium">Secure Access Portal</p>
+        </div>
 
-          {/* Role Selector (Replaces Social Login) */}
-          <div className="grid gap-3">
-            {ROLES.map((role) => {
-              const Icon = role.icon;
-              const isSelected = selectedRole.id === role.id;
-              
-              return (
-                <motion.button
-                  key={role.id}
-                  onClick={() => handleRoleSelect(role)}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  className={`relative flex items-center gap-4 p-3 rounded-xl border transition-all duration-200 text-left group ${
-                    isSelected 
-                      ? 'border-indigo-600 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-600' 
-                      : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className={`p-2.5 rounded-lg transition-colors ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm'}`}>
-                    <Icon size={20} />
-                  </div>
-                  <div className="flex-1">
-                    <p className={`text-sm font-semibold ${isSelected ? 'text-indigo-900' : 'text-slate-700'}`}>{role.label}</p>
-                    <p className="text-xs text-slate-500">{role.desc}</p>
-                  </div>
-                  {isSelected && (
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-indigo-600">
-                      <Check size={18} strokeWidth={3} />
-                    </motion.div>
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-medium">Authentication</span></div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Username</label>
-                <div className="relative group">
-                  <input
-                    type="text"
-                    value={credential}
-                    onChange={(e) => setCredential(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all pl-11"
-                    placeholder="Enter your username"
-                  />
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Username</label>
+                    <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Icons.User /></div>
+                        <input type="text" required className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500 transition-all" 
+                            placeholder="Enter username" value={formData.username} onChange={(e) => setFormData({...formData, username: e.target.value})} />
+                    </div>
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Password</label>
-                <div className="relative group">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all pl-11"
-                    placeholder="••••••••"
-                  />
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Password</label>
+                    <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Icons.Lock /></div>
+                        <input type={showPassword ? "text" : "password"} required className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3.5 pl-12 pr-12 text-white focus:outline-none focus:border-purple-500 transition-all" 
+                            placeholder="••••••••" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                            {showPassword ? <Icons.EyeOff /> : <Icons.Eye />}
+                        </button>
+                    </div>
                 </div>
-              </div>
-            </div>
 
-            <motion.button
-              type="submit"
-              disabled={isLoading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`w-full py-3.5 px-4 rounded-xl text-sm font-bold text-white shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 ${
-                isLoading ? 'bg-indigo-400 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:shadow-xl hover:-translate-y-0.5'
-              }`}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} />
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  Sign In <ChevronRight size={18} />
-                </>
-              )}
-            </motion.button>
-          </form>
+                {status === 'error' && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold text-center">{errorMessage}</div>}
 
-          <p className="text-center text-xs text-slate-400 mt-8">
-            Protected by DOST Enterprise Security • v2.5
-          </p>
+                <button type="submit" disabled={status === 'loading'} className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 p-[1px] hover:scale-[1.02] active:scale-[0.98] transition-transform">
+                    <div className="bg-slate-900 hover:bg-opacity-0 transition-all duration-300 rounded-[11px] h-full px-8 py-3.5 flex items-center justify-center">
+                        <span className="font-bold text-white">{status === 'loading' ? 'Verifying...' : 'Sign In'}</span>
+                    </div>
+                </button>
+            </form>
         </div>
       </div>
     </div>
