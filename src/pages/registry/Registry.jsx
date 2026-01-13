@@ -1,28 +1,21 @@
 import { useState } from 'react';
-import DocumentViewerModal from '../../components/registry/DocumentViewerModal'; // Import Viewer
+import DocumentViewerModal from '../../components/registry/DocumentViewerModal';
 import FilePasswordModal from '../../components/registry/FilePasswordModal';
 import RecordModal from '../../components/registry/RecordModal';
+import RecordTable from '../../components/registry/RecordTable'; // <--- Using the Component
 import { useAuth } from '../../context/AuthContext';
 import { useCodex } from '../../context/CodexContext';
 import { useRegions } from '../../context/RegionContext';
 import { useRegistry } from '../../context/RegistryContext';
 
-// ... (Keep your Icons constant exactly as is) ...
+// Icons
 const Icons = {
   RegionFolder: () => <svg className="w-24 h-24 text-blue-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>,
   CodexFolder: () => <svg className="w-20 h-20 text-amber-400 drop-shadow-md" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>,
   Home: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
   ChevronRight: () => <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>,
   Search: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>,
-  Archive: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>,
-  File: () => <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-  Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
-  Download: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
-  Trash: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
-  Eye: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
-  Pencil: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
-  Refresh: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
-  Lock: () => <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+  Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
 };
 
 const Registry = () => {
@@ -48,7 +41,6 @@ const Registry = () => {
   const [viewerUrl, setViewerUrl] = useState('');
   const [viewerFile, setViewerFile] = useState(null);
 
-  // --- SMART SECURITY FILTER ---
   const visibleRegions = regions.filter(region => {
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
     const isAssigned = region.id == user?.region_id; 
@@ -86,14 +78,11 @@ const Registry = () => {
     fetchRecords({ region: activeRegion.id, category: activeCategory.name, page: 1, status: mode });
   };
 
-  // --- 🔒 SECURE VIEW LOGIC ---
   const handleViewFile = (record) => {
     if (record.is_restricted) {
-        // Step 1: Challenge
         setSelectedRestrictedRecord(record);
         setPasswordModalOpen(true);
     } else {
-        // Step 2: Open Public (Secure Route)
         const url = `http://localhost:5000/api/records/download/${record.file_path}`;
         setViewerUrl(url);
         setViewerFile(record);
@@ -102,7 +91,6 @@ const Registry = () => {
   };
 
   const handleUnlockSuccess = (filePath, accessToken) => {
-    // Step 3: Open Restricted (Tokenized Route)
     const url = `http://localhost:5000/api/records/download/${filePath}?token=${accessToken}`;
     setViewerUrl(url);
     setViewerFile(selectedRestrictedRecord);
@@ -111,13 +99,6 @@ const Registry = () => {
 
   const handleEdit = (rec) => { setRecordToEdit(rec); setIsModalOpen(true); };
   const handleCloseModal = () => { setIsModalOpen(false); setRecordToEdit(null); };
-
-  const getRetentionBadge = (disposalDate) => {
-      if (!disposalDate) return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-600 border border-indigo-200">PERMANENT</span>;
-      const days = Math.ceil((new Date(disposalDate) - new Date()) / (1000 * 60 * 60 * 24));
-      if (days < 0) return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 border border-red-200">EXPIRED</span>;
-      return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">{(days / 365).toFixed(1)} Years</span>;
-  };
 
   return (
     <div className="p-8 min-h-screen bg-slate-50/50 animate-fade-in flex flex-col gap-6">
@@ -147,7 +128,7 @@ const Registry = () => {
         <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-200 font-bold text-sm flex items-center gap-2 active:scale-95 transition-all"><Icons.Plus /> Upload Record</button>
       </div>
 
-      {/* VIEW LAYERS */}
+      {/* REGION SELECTION */}
       {!activeRegion && (
         <div className="animate-fade-in-up">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Regional Vaults</h3>
@@ -158,11 +139,11 @@ const Registry = () => {
                         <h3 className="font-bold text-slate-700 text-lg">{region.name}</h3>
                     </div>
                 ))}
-                {visibleRegions.length === 0 && <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-xl"><p className="text-slate-400 font-bold">No authorized regional folders found.</p></div>}
             </div>
         </div>
       )}
 
+      {/* CATEGORY SELECTION */}
       {activeRegion && !activeCategory && (
         <div className="animate-fade-in-up">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Classification Folders</h3>
@@ -173,12 +154,11 @@ const Registry = () => {
                         <h3 className="font-bold text-slate-700 text-lg">{cat.name}</h3>
                     </div>
                 ))}
-                {getVisibleCategories().length === 0 && <div className="col-span-full py-20 text-center text-slate-400 italic">No folders here.</div>}
             </div>
         </div>
       )}
 
-      {/* TABLE */}
+      {/* DATA TABLE (Using New Component) */}
       {activeRegion && activeCategory && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col animate-fade-in">
           <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
@@ -191,41 +171,19 @@ const Registry = () => {
                 <button onClick={() => toggleViewMode('Archived')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'Archived' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500'}`}>Archived</button>
              </div>
           </div>
+          
           <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500 font-bold tracking-wider sticky top-0 z-10">
-                <tr><th className="px-6 py-4">Document</th><th className="px-6 py-4">Status</th><th className="px-6 py-4 text-right">Actions</th></tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {records.length === 0 ? (<tr><td colSpan="3" className="p-20 text-center text-slate-400">Empty.</td></tr>) 
-                : (records.map((r) => (
-                    <tr key={r.record_id} className="transition-colors hover:bg-indigo-50/30 group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${viewMode === 'Archived' ? 'bg-slate-200 text-slate-500' : (r.is_restricted ? 'bg-red-50 text-red-500' : 'bg-indigo-50 text-indigo-600')}`}>
-                              {r.is_restricted ? <Icons.Lock /> : <Icons.File />}
-                          </div>
-                          <div>
-                            <p className={`font-bold text-sm group-hover:text-indigo-600 transition-colors ${r.is_restricted ? 'text-red-700' : 'text-slate-800'}`}>{r.title}</p>
-                            <div className="flex gap-2 mt-1"><span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase">{r.type_name}</span>{getRetentionBadge(r.disposal_date)}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-500">{r.status}</td>
-                      <td className="px-6 py-4 text-right flex justify-end gap-2">
-                          <button onClick={() => handleViewFile(r)} className="text-slate-400 hover:text-indigo-600 p-2 rounded-lg hover:bg-indigo-50" title="View"><Icons.Eye /></button>
-                          {viewMode === 'Active' && <button onClick={() => handleEdit(r)} className="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50"><Icons.Pencil /></button>}
-                          {viewMode === 'Active' ? 
-                            <button onClick={() => archiveRecord(r.record_id)} className="text-slate-400 hover:text-amber-600 p-2 rounded-lg hover:bg-amber-50"><Icons.Archive /></button> :
-                            <button onClick={() => restoreRecord(r.record_id)} className="text-slate-400 hover:text-emerald-600 p-2 rounded-lg hover:bg-emerald-50"><Icons.Refresh /></button>
-                          }
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <RecordTable 
+                records={records}
+                viewMode={viewMode}
+                onEdit={handleEdit}
+                onArchive={archiveRecord} // Calls context function
+                onRestore={restoreRecord}
+                onDestroy={destroyRecord}
+                onView={handleViewFile}
+            />
           </div>
+
           <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
             <div className="text-xs text-slate-500">Page {pagination.current} of {pagination.pages}</div>
             <div className="flex gap-2">
@@ -236,31 +194,10 @@ const Registry = () => {
         </div>
       )}
 
-      {/* --- MODALS --- */}
-      <RecordModal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
-        onSuccess={handleOperationSuccess} 
-        preSelectedCategory={activeCategory} 
-        preSelectedRegion={activeRegion}
-        recordToEdit={recordToEdit}
-      />
-
-      <FilePasswordModal 
-        isOpen={passwordModalOpen}
-        onClose={() => setPasswordModalOpen(false)}
-        onSuccess={handleUnlockSuccess}
-        record={selectedRestrictedRecord}
-      />
-
-      {/* --- VIEWER (NEW) --- */}
-      <DocumentViewerModal 
-        isOpen={viewerOpen}
-        onClose={() => setViewerOpen(false)}
-        fileUrl={viewerUrl}
-        fileName={viewerFile?.title || 'Document'}
-        isRestricted={viewerFile?.is_restricted}
-      />
+      {/* MODALS */}
+      <RecordModal isOpen={isModalOpen} onClose={handleCloseModal} onSuccess={handleOperationSuccess} recordToEdit={recordToEdit} />
+      <FilePasswordModal isOpen={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} onSuccess={handleUnlockSuccess} record={selectedRestrictedRecord} />
+      <DocumentViewerModal isOpen={viewerOpen} onClose={() => setViewerOpen(false)} fileUrl={viewerUrl} fileName={viewerFile?.title || 'Document'} isRestricted={viewerFile?.is_restricted} />
     </div>
   );
 };
