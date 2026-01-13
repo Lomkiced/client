@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import * as api from '../services/endpoints/api'; // Import your optimized service
+import * as api from '../services/endpoints/api';
 import { useAuth } from './AuthContext';
 
 const RegistryContext = createContext();
@@ -11,20 +11,15 @@ export const RegistryProvider = ({ children }) => {
   const [pagination, setPagination] = useState({ total: 0, current: 1, pages: 1 });
   const [filters, setFilters] = useState({ search: '', category: 'All', page: 1, status: 'Active', region: '' });
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false); // New State for UI Loading
+  const [uploading, setUploading] = useState(false);
 
   // 1. FETCH RECORDS
-  // Wrapped in useCallback to prevent infinite loops in useEffect
   const fetchRecords = useCallback(async (overrideFilters = {}) => {
     try {
       setLoading(true);
-      
-      // Merge current filters with new ones
       const activeFilters = { ...filters, ...overrideFilters };
       setFilters(activeFilters);
 
-      // STRATEGY: Use the API Service (Centralized Logic)
-      // The API service now handles the token ('dost_token') automatically.
       const result = await api.getRecords({
           page: activeFilters.page || 1,
           limit: 10,
@@ -38,38 +33,32 @@ export const RegistryProvider = ({ children }) => {
         setRecords(result.data || []);
         setPagination(result.pagination || { total: 0, current: 1, pages: 1 });
       }
-
     } catch (err) {
       console.error("Registry Load Error:", err);
-      // Optional: setRecords([]) on error if you want to clear the table
     } finally {
       setLoading(false);
     }
-  }, [filters]); // Dependencies
+  }, [filters]);
 
-  // Initial Load
   useEffect(() => {
      if (user) fetchRecords();
-  }, [user]); // Only run when user logs in/changes
+  }, [user]);
 
-  // 2. UPLOAD RECORD (Strategic: Uses api.js)
+  // 2. CRUD OPERATIONS
   const uploadRecord = async (formData) => {
     setUploading(true);
     try {
       await api.createRecord(formData);
-      // Auto-refresh after success
       await fetchRecords(); 
       setUploading(false);
       return true;
     } catch (err) {
-      console.error("Upload Error:", err);
       alert(err.response?.data?.message || "Upload Failed");
       setUploading(false);
       return false;
     }
   };
 
-  // 3. UPDATE RECORD
   const updateRecord = async (id, formData) => {
     setUploading(true);
     try {
@@ -84,44 +73,42 @@ export const RegistryProvider = ({ children }) => {
     }
   };
 
-  // 4. ARCHIVE
+  // --- ARCHIVE FIX ---
   const archiveRecord = async (id) => {
     try {
+        setUploading(true);
+        console.log("Archiving ID:", id); // Debug
         await api.archiveRecord(id);
-        fetchRecords(); // Refresh list
-    } catch (err) { console.error(err); }
+        // Force refresh with current filters
+        await fetchRecords(); 
+    } catch (err) {
+        console.error("Archive Error in Context:", err);
+        alert("Failed to archive record. Check console for details.");
+    } finally {
+        setUploading(false);
+    }
   };
 
-  // 5. RESTORE
   const restoreRecord = async (id) => {
     try {
         await api.restoreRecord(id);
-        fetchRecords();
+        await fetchRecords();
     } catch (err) { console.error(err); }
   };
 
-  // 6. DESTROY
   const destroyRecord = async (id) => {
-    if(!window.confirm("WARNING: This will permanently delete the file. Undo is impossible.")) return;
+    if(!window.confirm("Permanent Delete? This cannot be undone.")) return;
     try {
         await api.deleteRecord(id);
-        fetchRecords();
+        await fetchRecords();
     } catch (err) { console.error(err); }
   };
 
   return (
     <RegistryContext.Provider value={{ 
-      records, 
-      pagination, 
-      filters, 
-      loading, 
-      uploading, // Export this so Modal can show a spinner
-      fetchRecords, 
-      uploadRecord, // Export renamed function
-      updateRecord, 
-      archiveRecord, 
-      restoreRecord, 
-      destroyRecord 
+      records, pagination, filters, loading, uploading, 
+      fetchRecords, uploadRecord, updateRecord, 
+      archiveRecord, restoreRecord, destroyRecord 
     }}>
       {children}
     </RegistryContext.Provider>

@@ -10,7 +10,7 @@ const Icons = {
 };
 
 const RecordTable = ({ records, onEdit, onArchive, onRestore, onDestroy, onView, viewMode }) => {
-  if (records.length === 0) {
+  if (!records || records.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 m-4">
         <div className="p-4 bg-white rounded-full shadow-sm mb-3">
@@ -76,9 +76,9 @@ const RecordTable = ({ records, onEdit, onArchive, onRestore, onDestroy, onView,
             <td className="px-6 py-4 text-right">
               <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 
-                {/* GLOBAL: View Button */}
+                {/* VIEW (Universal) */}
                 <button 
-                  onClick={() => onView(record)} 
+                  onClick={(e) => { e.stopPropagation(); onView(record); }} 
                   className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" 
                   title="View File"
                 >
@@ -88,11 +88,10 @@ const RecordTable = ({ records, onEdit, onArchive, onRestore, onDestroy, onView,
                 {/* ACTIVE MODE BUTTONS */}
                 {viewMode === 'Active' && (
                     <>
-                        <button onClick={() => onEdit(record)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit Metadata">
+                        <button onClick={(e) => { e.stopPropagation(); onEdit(record); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit Metadata">
                             <Icons.Edit />
                         </button>
-                        {/* FIX: Use record.record_id explicitly */}
-                        <button onClick={() => onArchive(record.record_id)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Archive Record">
+                        <button onClick={(e) => { e.stopPropagation(); onArchive(record.record_id); }} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Archive Record">
                             <Icons.Archive />
                         </button>
                     </>
@@ -102,14 +101,14 @@ const RecordTable = ({ records, onEdit, onArchive, onRestore, onDestroy, onView,
                 {viewMode === 'Archived' && (
                     <>
                         <button 
-                          onClick={() => onRestore(record.record_id)} 
+                          onClick={(e) => { e.stopPropagation(); onRestore(record.record_id); }} 
                           className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" 
                           title="Restore to Registry"
                         >
                             <Icons.Restore />
                         </button>
                         <button 
-                          onClick={() => onDestroy(record.record_id)} 
+                          onClick={(e) => { e.stopPropagation(); onDestroy(record.record_id); }} 
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" 
                           title="Permanently Destroy"
                         >

@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DocumentViewerModal from '../../components/registry/DocumentViewerModal';
 import FilePasswordModal from '../../components/registry/FilePasswordModal';
 import RecordModal from '../../components/registry/RecordModal';
-import RecordTable from '../../components/registry/RecordTable'; // <--- Using the Component
+import RecordTable from '../../components/registry/RecordTable';
 import { useAuth } from '../../context/AuthContext';
 import { useCodex } from '../../context/CodexContext';
 import { useRegions } from '../../context/RegionContext';
 import { useRegistry } from '../../context/RegistryContext';
 
-// Icons
 const Icons = {
   RegionFolder: () => <svg className="w-24 h-24 text-blue-500 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>,
   CodexFolder: () => <svg className="w-20 h-20 text-amber-400 drop-shadow-md" fill="currentColor" viewBox="0 0 24 24"><path d="M19.5 21a3 3 0 0 0 3-3v-4.5a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3V18a3 3 0 0 0 3 3h15ZM1.5 10.146V6a3 3 0 0 1 3-3h5.379a2.25 2.25 0 0 1 1.59.659l2.122 2.121c.14.141.331.22.53.22H19.5a3 3 0 0 1 3 3v1.146A4.483 4.483 0 0 0 19.5 9h-15a4.483 4.483 0 0 0-3 1.146Z" /></svg>,
@@ -24,58 +23,72 @@ const Registry = () => {
   const { categories } = useCodex();
   const { regions } = useRegions();
   
-  // STATE
   const [activeRegion, setActiveRegion] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
   const [viewMode, setViewMode] = useState('Active');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // MODAL STATES
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState(null);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [selectedRestrictedRecord, setSelectedRestrictedRecord] = useState(null);
   
-  // VIEWER STATES
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerUrl, setViewerUrl] = useState('');
   const [viewerFile, setViewerFile] = useState(null);
 
-  const visibleRegions = regions.filter(region => {
-    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
-    const isAssigned = region.id == user?.region_id; 
-    const matchesSearch = region.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return (isSuperAdmin || isAssigned) && matchesSearch;
-  });
-
-  const handleOperationSuccess = () => {
-    setIsModalOpen(false);
-    setRecordToEdit(null);
-    if (activeRegion && activeCategory) {
-        fetchRecords({ region: activeRegion.id, category: activeCategory.name, page: 1, status: viewMode });
-    }
-  };
+  // SEARCH EFFECT
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+        fetchRecords({ 
+            region: activeRegion ? activeRegion.id : '', 
+            category: activeCategory ? activeCategory.name : 'All', 
+            page: 1, 
+            status: viewMode,
+            search: searchTerm 
+        });
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, activeRegion, activeCategory, viewMode]);
 
   const enterRegion = (region) => { setActiveRegion(region); setActiveCategory(null); setSearchTerm(''); };
   const enterCategory = (category) => {
     if (!activeRegion) return; 
     setActiveCategory(category);
     setViewMode('Active');
-    fetchRecords({ region: activeRegion.id, category: category.name, page: 1, status: 'Active' });
+    setSearchTerm(''); 
   };
 
   const goToRoot = () => { setActiveRegion(null); setActiveCategory(null); setSearchTerm(''); };
   const goToRegion = () => { setActiveCategory(null); setSearchTerm(''); };
+
+  const visibleRegions = regions.filter(region => {
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+    const isAssigned = region.id == user?.region_id; 
+    return (isSuperAdmin || isAssigned);
+  });
 
   const getVisibleCategories = () => {
     if (!activeRegion) return [];
     return categories.filter(cat => cat.region === 'Global' || cat.region === activeRegion.name);
   };
 
-  const toggleViewMode = (mode) => {
-    if (!activeRegion || !activeCategory) return;
-    setViewMode(mode);
-    fetchRecords({ region: activeRegion.id, category: activeCategory.name, page: 1, status: mode });
+  const toggleViewMode = (mode) => { setViewMode(mode); };
+
+  const handleArchive = async (id) => {
+    if (window.confirm("Are you sure you want to archive this record?")) {
+        await archiveRecord(id);
+        // Refresh Current View
+        fetchRecords({ region: activeRegion?.id, category: activeCategory?.name, page: 1, status: viewMode, search: searchTerm });
+    }
+  };
+
+  const handleEdit = (rec) => { setRecordToEdit(rec); setIsModalOpen(true); };
+  
+  const handleOperationSuccess = () => {
+    setIsModalOpen(false);
+    setRecordToEdit(null);
+    fetchRecords({ region: activeRegion?.id, category: activeCategory?.name, page: 1, status: viewMode, search: searchTerm });
   };
 
   const handleViewFile = (record) => {
@@ -97,8 +110,8 @@ const Registry = () => {
     setViewerOpen(true);
   };
 
-  const handleEdit = (rec) => { setRecordToEdit(rec); setIsModalOpen(true); };
-  const handleCloseModal = () => { setIsModalOpen(false); setRecordToEdit(null); };
+  // Logic to show table vs folders
+  const showTable = (activeRegion && activeCategory) || searchTerm.length > 0;
 
   return (
     <div className="p-8 min-h-screen bg-slate-50/50 animate-fade-in flex flex-col gap-6">
@@ -106,9 +119,7 @@ const Registry = () => {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-             <span className="text-indigo-600">Registry</span>
-          </h1>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3"><span className="text-indigo-600">Registry</span></h1>
           <div className="flex items-center gap-2 mt-2 text-sm font-medium">
              <button onClick={goToRoot} className={`flex items-center gap-1 hover:text-indigo-600 transition-colors ${!activeRegion ? 'text-indigo-600 font-bold' : 'text-slate-500'}`}><Icons.Home /> National</button>
              {activeRegion && (
@@ -117,19 +128,26 @@ const Registry = () => {
                  <button onClick={goToRegion} className={`flex items-center gap-1 hover:text-indigo-600 transition-colors ${!activeCategory ? 'text-indigo-600 font-bold' : 'text-slate-500'}`}>{activeRegion.name}</button>
                </>
              )}
-             {activeCategory && (
-               <>
-                 <Icons.ChevronRight />
-                 <span className="text-indigo-600 font-bold px-2 py-0.5 bg-indigo-50 rounded-md border border-indigo-100">{activeCategory.name}</span>
-               </>
-             )}
+             {activeCategory && <><Icons.ChevronRight /><span className="text-indigo-600 font-bold px-2 py-0.5 bg-indigo-50 rounded-md border border-indigo-100">{activeCategory.name}</span></>}
           </div>
         </div>
         <button onClick={() => setIsModalOpen(true)} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-200 font-bold text-sm flex items-center gap-2 active:scale-95 transition-all"><Icons.Plus /> Upload Record</button>
       </div>
 
+      {/* SEARCH BAR */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+         <div className="relative w-full max-w-md">
+           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></div>
+           <input type="text" placeholder="Search records..." className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+         </div>
+         <div className="flex bg-slate-100 p-1 rounded-lg">
+            <button onClick={() => toggleViewMode('Active')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'Active' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Active</button>
+            <button onClick={() => toggleViewMode('Archived')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'Archived' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500'}`}>Archived</button>
+         </div>
+      </div>
+
       {/* REGION SELECTION */}
-      {!activeRegion && (
+      {!activeRegion && !searchTerm && (
         <div className="animate-fade-in-up">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Regional Vaults</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -144,7 +162,7 @@ const Registry = () => {
       )}
 
       {/* CATEGORY SELECTION */}
-      {activeRegion && !activeCategory && (
+      {activeRegion && !activeCategory && !searchTerm && (
         <div className="animate-fade-in-up">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Classification Folders</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -158,44 +176,24 @@ const Registry = () => {
         </div>
       )}
 
-      {/* DATA TABLE (Using New Component) */}
-      {activeRegion && activeCategory && (
+      {/* DATA TABLE */}
+      {showTable && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col animate-fade-in">
-          <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
-             <div className="relative w-full max-w-md">
-               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></div>
-               <input type="text" placeholder="Search..." className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-             </div>
-             <div className="flex bg-slate-200 p-1 rounded-lg">
-                <button onClick={() => toggleViewMode('Active')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'Active' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Active</button>
-                <button onClick={() => toggleViewMode('Archived')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'Archived' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500'}`}>Archived</button>
-             </div>
-          </div>
-          
           <div className="overflow-x-auto flex-1">
-            <RecordTable 
-                records={records}
-                viewMode={viewMode}
-                onEdit={handleEdit}
-                onArchive={archiveRecord} // Calls context function
-                onRestore={restoreRecord}
-                onDestroy={destroyRecord}
-                onView={handleViewFile}
-            />
+            <RecordTable records={records} viewMode={viewMode} onEdit={handleEdit} onArchive={handleArchive} onRestore={restoreRecord} onDestroy={destroyRecord} onView={handleViewFile} />
           </div>
-
           <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
             <div className="text-xs text-slate-500">Page {pagination.current} of {pagination.pages}</div>
             <div className="flex gap-2">
-              <button disabled={pagination.current === 1} onClick={() => fetchRecords({ page: pagination.current - 1, region: activeRegion?.id, category: activeCategory?.name, status: viewMode })} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 disabled:opacity-50">Prev</button>
-              <button disabled={pagination.current === pagination.pages} onClick={() => fetchRecords({ page: pagination.current + 1, region: activeRegion?.id, category: activeCategory?.name, status: viewMode })} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 disabled:opacity-50">Next</button>
+              <button disabled={pagination.current === 1} onClick={() => fetchRecords({ page: pagination.current - 1, region: activeRegion?.id, category: activeCategory?.name, status: viewMode, search: searchTerm })} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 disabled:opacity-50">Prev</button>
+              <button disabled={pagination.current === pagination.pages} onClick={() => fetchRecords({ page: pagination.current + 1, region: activeRegion?.id, category: activeCategory?.name, status: viewMode, search: searchTerm })} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-50 disabled:opacity-50">Next</button>
             </div>
           </div>
         </div>
       )}
 
       {/* MODALS */}
-      <RecordModal isOpen={isModalOpen} onClose={handleCloseModal} onSuccess={handleOperationSuccess} recordToEdit={recordToEdit} />
+      <RecordModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSuccess={handleOperationSuccess} recordToEdit={recordToEdit} />
       <FilePasswordModal isOpen={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} onSuccess={handleUnlockSuccess} record={selectedRestrictedRecord} />
       <DocumentViewerModal isOpen={viewerOpen} onClose={() => setViewerOpen(false)} fileUrl={viewerUrl} fileName={viewerFile?.title || 'Document'} isRestricted={viewerFile?.is_restricted} />
     </div>
