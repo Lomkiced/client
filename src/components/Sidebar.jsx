@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 
-// --- PROFESSIONAL ICON SYSTEM ---
-// Logic retained, visual strokes optimized for the new dark theme
+// --- ICONS (Preserved) ---
 const Icons = {
   Dashboard: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>,
   Globe: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12h19.5M12 2.25a15.75 15.75 0 010 19.5M12 2.25a15.75 15.75 0 000 19.5" /></svg>,
@@ -20,17 +20,18 @@ const Icons = {
   Logout: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>,
 };
 
-// --- INTERACTIVE NAV ITEM ---
-const NavItem = ({ item, isCollapsed, isActive }) => {
+// --- INTERACTIVE NAV ITEM (Uses Dynamic Branding) ---
+const NavItem = ({ item, isCollapsed, isActive, branding }) => {
   return (
     <div className="relative group my-1">
-      {/* Active Indicator: Glowing Neon Bar */}
+      {/* Active Indicator: Uses Brand Color */}
       <div 
         className={`absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-10 rounded-r-lg transition-all duration-300 ${
           isActive 
-            ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] opacity-100 scale-y-100' 
+            ? 'opacity-100 scale-y-100' 
             : 'bg-transparent opacity-0 scale-y-50'
         }`}
+        style={{ backgroundColor: isActive ? branding.primaryColor : 'transparent', boxShadow: isActive ? `0 0 15px ${branding.primaryColor}` : 'none' }}
       />
 
       <div
@@ -38,21 +39,19 @@ const NavItem = ({ item, isCollapsed, isActive }) => {
           relative flex items-center 
           ${isCollapsed ? 'justify-center w-12 h-12 mx-auto' : 'px-4 py-3.5 mx-3'}
           rounded-xl transition-all duration-300 cursor-pointer overflow-hidden
-          ${isActive
-            ? 'bg-gradient-to-r from-blue-600/20 to-indigo-600/10 text-white border border-blue-500/20 shadow-inner'
-            : 'text-slate-400 hover:text-white hover:bg-white/5 hover:translate-x-1'
-          }
+          ${isActive ? 'text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5 hover:translate-x-1'}
         `}
+        style={isActive ? {
+            background: `linear-gradient(to right, ${branding.primaryColor}33, ${branding.secondaryColor}1a)`, // 33=20%, 1a=10% opacity
+            borderColor: `${branding.primaryColor}33`
+        } : {}}
       >
-        {/* Hover Highlight (Glass Effect) */}
         {!isActive && <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />}
 
-        {/* Icon with Bounce/Glow Effect */}
-        <span className={`relative z-10 transition-transform duration-300 ${isActive ? 'text-blue-400 scale-110 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'group-hover:scale-110 group-hover:text-blue-300'}`}>
+        <span className={`relative z-10 transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'group-hover:scale-110'}`} style={{ color: isActive ? branding.primaryColor : 'inherit' }}>
           <item.icon className="w-5 h-5" />
         </span>
 
-        {/* Text Label */}
         {!isCollapsed && (
           <span className="relative z-10 ml-3 text-sm font-medium tracking-wide truncate transition-colors duration-300">
             {item.label}
@@ -60,7 +59,6 @@ const NavItem = ({ item, isCollapsed, isActive }) => {
         )}
       </div>
 
-      {/* Floating Tooltip for Collapsed State */}
       {isCollapsed && (
         <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-3 py-1.5 bg-slate-800/90 backdrop-blur-md text-white text-xs font-bold rounded-lg shadow-xl border border-slate-700 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none whitespace-nowrap z-[100]">
           {item.label}
@@ -73,12 +71,12 @@ const NavItem = ({ item, isCollapsed, isActive }) => {
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
+  const { branding } = useBranding(); // <--- BRANDING HOOK
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = useMemo(() => {
     if (!user) return [];
     
-    // --- LOGIC PRESERVED EXACTLY AS REQUESTED ---
     const ADMIN_MENU = [
       {
         category: "Regional Command",
@@ -133,33 +131,42 @@ const Sidebar = () => {
         z-50 shadow-2xl shadow-black ring-1 ring-white/5
       `}
     >
-      {/* --- HEADER --- */}
+      {/* --- HEADER (DYNAMIC BRANDING) --- */}
       <div className="h-24 flex items-center justify-center relative border-b border-slate-800/50 bg-gradient-to-b from-white/5 to-transparent">
         {/* Expanded Header */}
         <div className={`flex items-center gap-3 transition-all duration-500 ${isCollapsed ? 'opacity-0 scale-90 hidden' : 'opacity-100 scale-100'}`}>
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-200"></div>
-            <div className="relative w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center ring-1 ring-white/10">
-               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 font-black text-xl">R</span>
+            <div className="absolute -inset-1 rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-200" style={{ background: `linear-gradient(to right, ${branding.primaryColor}, ${branding.secondaryColor})` }}></div>
+            <div className="relative w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center ring-1 ring-white/10 overflow-hidden">
+               {branding.logoUrl ? (
+                   <img src={branding.logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+               ) : (
+                   <span className="text-transparent bg-clip-text font-black text-xl" style={{ backgroundImage: `linear-gradient(to right, ${branding.primaryColor}, #fff)` }}>R</span>
+               )}
             </div>
           </div>
           <div>
-            <h1 className="text-white font-bold text-xl tracking-tight leading-none font-sans">DOST<span className="text-blue-500">.RMS</span></h1>
-            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.25em] mt-1 pl-0.5">Enterprise</p>
+            <h1 className="text-white font-bold text-xl tracking-tight leading-none font-sans truncate w-32">{branding.systemName}</h1>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.25em] mt-1 pl-0.5 truncate w-32">Enterprise</p>
           </div>
         </div>
 
         {/* Collapsed Header */}
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ${isCollapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-0'}`}>
-           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 border border-slate-700/50 flex items-center justify-center shadow-lg shadow-blue-500/10">
-             <span className="text-blue-400 font-black text-2xl">R</span>
+           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 border border-slate-700/50 flex items-center justify-center shadow-lg shadow-blue-500/10 overflow-hidden">
+             {branding.logoUrl ? (
+                 <img src={branding.logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+             ) : (
+                 <span className="font-black text-2xl" style={{ color: branding.primaryColor }}>R</span>
+             )}
            </div>
         </div>
 
         {/* Floating Toggle Button */}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 w-7 h-7 bg-slate-900 border border-slate-700 text-slate-400 rounded-full flex items-center justify-center hover:text-white hover:border-blue-500 hover:shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all z-50 group"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 w-7 h-7 bg-slate-900 border border-slate-700 text-slate-400 rounded-full flex items-center justify-center hover:text-white transition-all z-50 group"
+          style={{ borderColor: 'rgba(255,255,255,0.1)' }}
         >
           {isCollapsed ? <Icons.ChevronRight className="w-4 h-4 group-hover:scale-110 transition-transform" /> : <Icons.ChevronLeft className="w-4 h-4 group-hover:scale-110 transition-transform" />}
         </button>
@@ -170,7 +177,7 @@ const Sidebar = () => {
         {menuItems.map((section, idx) => (
           <div key={idx} className="group/section">
             {!isCollapsed && (
-              <h3 className="px-7 mb-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest animate-fade-in group-hover/section:text-blue-400 transition-colors">
+              <h3 className="px-7 mb-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest animate-fade-in transition-colors" style={{ color: 'inherit' }}>
                 {section.category}
               </h3>
             )}
@@ -179,7 +186,7 @@ const Sidebar = () => {
               {section.items.map((item) => (
                 <NavLink key={item.path} to={item.path}>
                   {({ isActive }) => (
-                    <NavItem item={item} isCollapsed={isCollapsed} isActive={isActive} />
+                    <NavItem item={item} isCollapsed={isCollapsed} isActive={isActive} branding={branding} />
                   )}
                 </NavLink>
               ))}
@@ -201,12 +208,10 @@ const Sidebar = () => {
            group cursor-pointer overflow-hidden
            ${isCollapsed ? 'justify-center' : ''} flex items-center gap-3
         `}>
-           {/* Glow Effect behind user */}
-           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(to right, ${branding.primaryColor}1a, transparent)` }} />
 
-           {/* Avatar */}
            <div className={`relative shrink-0 transition-all duration-300 ${isCollapsed ? 'group-hover:opacity-0' : ''}`}>
-             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px] shadow-lg">
+             <div className="w-10 h-10 rounded-full p-[2px] shadow-lg" style={{ background: `linear-gradient(to bottom right, ${branding.primaryColor}, ${branding.secondaryColor})` }}>
                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-xs font-bold text-white">
                  {user.username?.charAt(0).toUpperCase() || 'U'}
                </div>
@@ -214,7 +219,6 @@ const Sidebar = () => {
              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse"></span>
            </div>
 
-           {/* Info */}
            {!isCollapsed && (
              <div className="flex-1 min-w-0 relative z-10">
                <p className="text-sm font-bold text-white truncate group-hover:text-blue-200 transition-colors">{user.username}</p>
@@ -224,7 +228,6 @@ const Sidebar = () => {
              </div>
            )}
 
-           {/* Logout Button (Hidden until hover/collapse) */}
            <button 
              onClick={logout} 
              title="Logout"

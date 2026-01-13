@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { getSystemSettings } from '../services/api';
 
 const BrandingContext = createContext();
 
@@ -10,24 +9,33 @@ export const BrandingProvider = ({ children }) => {
     welcomeMsg: 'Sign in to access the system.',
     logoUrl: null,
     loginBgUrl: null,
-    primaryColor: '#4f46e5'
+    primaryColor: '#4f46e5',    // Indigo-600
+    secondaryColor: '#0f172a'   // Slate-900
   });
   const [loading, setLoading] = useState(true);
 
-  // Define the load function so we can reuse it
+  const applyTheme = (brandData) => {
+    const root = document.documentElement;
+    // Inject CSS Variables for instant theming
+    root.style.setProperty('--color-primary', brandData.primary_color || '#4f46e5');
+    root.style.setProperty('--color-secondary', brandData.secondary_color || '#0f172a');
+  };
+
   const loadBrand = async () => {
     try {
-      const data = await getSystemSettings();
+      const res = await fetch('http://localhost:5000/api/settings');
+      const data = await res.json();
+      
       if (data) {
-        const cleanUrl = (path) => path ? `http://localhost:5000${path}` : null;
-        
+        applyTheme(data); // <--- Apply CSS Variables
         setBranding({
-          systemName: data.system_name || 'DOST-RMS',
-          orgName: data.org_name || 'Department of Science and Technology',
-          welcomeMsg: data.welcome_msg || 'Sign in to access the system.',
-          logoUrl: cleanUrl(data.logo_url),
-          loginBgUrl: cleanUrl(data.login_bg_url),
-          primaryColor: data.primary_color || '#4f46e5'
+          systemName: data.system_name,
+          orgName: data.org_name,
+          welcomeMsg: data.welcome_msg,
+          logoUrl: data.logo_url ? `http://localhost:5000${data.logo_url}` : null,
+          loginBgUrl: data.login_bg_url ? `http://localhost:5000${data.login_bg_url}` : null,
+          primaryColor: data.primary_color,
+          secondaryColor: data.secondary_color
         });
       }
     } catch (err) {
@@ -37,13 +45,9 @@ export const BrandingProvider = ({ children }) => {
     }
   };
 
-  // Initial Load
-  useEffect(() => {
-    loadBrand();
-  }, []);
+  useEffect(() => { loadBrand(); }, []);
 
   return (
-    // Expose 'refreshBranding' to the rest of the app
     <BrandingContext.Provider value={{ branding, loading, refreshBranding: loadBrand }}>
       {children}
     </BrandingContext.Provider>
