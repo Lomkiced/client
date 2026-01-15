@@ -16,35 +16,49 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
     status: 'Active',
     file: null,
     // New fields for logic
-    retention_period: '', 
-    disposal_date: ''     
+    retention_period: '',
+    disposal_date: ''
   });
 
   const [uploadRegion, setUploadRegion] = useState(initialData?.region || targetRegion);
 
   // --- FILTERING ---
-  const availableCategories = categories.filter(c => 
+  const availableCategories = categories.filter(c =>
     c.region === 'Global' || c.region === uploadRegion
   );
 
-  const availableTypes = formData.category_id 
-    ? types.filter(t => t.category_id == formData.category_id) 
+  const availableTypes = formData.category_id
+    ? types.filter(t => t.category_id == formData.category_id)
     : [];
 
   // --- SMART DATE CALCULATOR ---
-  // Calculates disposal date based on a text rule (e.g. "5 Years")
+  // Calculates disposal date based on a text rule (e.g. "5 Years", "30 Days", "2 Weeks")
   const calculateDisposal = (retentionString) => {
     if (!retentionString) return 'N/A';
     if (retentionString.toLowerCase().includes('permanent')) return 'Permanent';
 
-    // Regex to find the first number in the string (e.g., "5" from "5 Years after audit")
-    const yearsMatch = retentionString.match(/(\d+)/);
-    const years = yearsMatch ? parseInt(yearsMatch[0]) : 0;
+    // Regex to find the first number in the string
+    const valueMatch = retentionString.match(/(\d+)/);
+    const value = valueMatch ? parseInt(valueMatch[0]) : 0;
 
-    if (years === 0) return 'N/A';
+    if (value === 0) return 'N/A';
 
     const futureDate = new Date();
-    futureDate.setFullYear(futureDate.getFullYear() + years);
+    const lowerStr = retentionString.toLowerCase();
+
+    if (lowerStr.includes('day')) {
+      futureDate.setDate(futureDate.getDate() + value);
+    } else if (lowerStr.includes('week')) {
+      futureDate.setDate(futureDate.getDate() + (value * 7));
+    } else if (lowerStr.includes('month')) {
+      futureDate.setMonth(futureDate.getMonth() + value);
+    } else if (lowerStr.includes('year')) {
+      futureDate.setFullYear(futureDate.getFullYear() + value);
+    } else {
+      // Default to years if no unit specified
+      futureDate.setFullYear(futureDate.getFullYear() + value);
+    }
+
     return futureDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
   };
 
@@ -54,7 +68,7 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
   const handleTypeChange = (e) => {
     const selectedTypeName = e.target.value;
     const rule = types.find(t => t.type_name === selectedTypeName);
-    
+
     const period = rule ? rule.retention_period : '';
     const disposal = calculateDisposal(period);
 
@@ -81,7 +95,7 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const catName = categories.find(c => c.category_id == formData.category_id)?.name || 'Uncategorized';
-    
+
     onSave({
       ...formData,
       category: catName,
@@ -93,7 +107,7 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
-        
+
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
           <div>
@@ -104,21 +118,21 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">✕</button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          
+
           {/* Region Selection (Super Admin) */}
           {user.role === 'Super Admin' ? (
             <div className="bg-blue-50/50 p-3 rounded-xl border border-blue-100">
               <label className="block text-[10px] font-bold text-blue-600 uppercase mb-1 tracking-wide">
                 Destination Region (Upload Target)
               </label>
-              <select 
+              <select
                 className="w-full bg-white border border-blue-200 text-gray-700 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 outline-none block p-2"
                 value={uploadRegion}
                 onChange={(e) => {
                   setUploadRegion(e.target.value);
-                  setFormData(prev => ({ ...prev, category_id: '', type_name: '', disposal_date: '' })); 
+                  setFormData(prev => ({ ...prev, category_id: '', type_name: '', disposal_date: '' }));
                 }}
               >
                 <option value="Central Office">Central Office</option>
@@ -129,21 +143,21 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-               <span className="text-xs text-gray-400 font-medium">Uploading to:</span>
-               <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
-                 {uploadRegion}
-               </span>
+              <span className="text-xs text-gray-400 font-medium">Uploading to:</span>
+              <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                {uploadRegion}
+              </span>
             </div>
           )}
 
           {/* Document Title */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Document Title</label>
-            <input 
+            <input
               required
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-300"
               value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
+              onChange={e => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g. 2025 Annual Budget Plan"
             />
           </div>
@@ -152,11 +166,11 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
             {/* Classification */}
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Classification</label>
-              <select 
+              <select
                 required
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
                 value={formData.category_id}
-                onChange={e => setFormData({...formData, category_id: e.target.value, type_name: '', disposal_date: ''})}
+                onChange={e => setFormData({ ...formData, category_id: e.target.value, type_name: '', disposal_date: '' })}
               >
                 <option value="">-- Select --</option>
                 {availableCategories.map(c => (
@@ -169,19 +183,19 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
 
             {/* Document Type (Triggers Calculation) */}
             <div>
-               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Document Type</label>
-               <select 
-                 required
-                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-gray-50 disabled:text-gray-300"
-                 value={formData.type_name}
-                 onChange={handleTypeChange} // <--- CALLS SMART CALCULATOR
-                 disabled={!formData.category_id}
-               >
-                 <option value="">-- Select --</option>
-                 {availableTypes.map(t => (
-                   <option key={t.type_id} value={t.type_name}>{t.type_name}</option>
-                 ))}
-               </select>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Document Type</label>
+              <select
+                required
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-gray-50 disabled:text-gray-300"
+                value={formData.type_name}
+                onChange={handleTypeChange} // <--- CALLS SMART CALCULATOR
+                disabled={!formData.category_id}
+              >
+                <option value="">-- Select --</option>
+                {availableTypes.map(t => (
+                  <option key={t.type_id} value={t.type_name}>{t.type_name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -203,12 +217,12 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
 
           {/* File Upload */}
           <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 hover:border-blue-400 transition-all group">
-            <input 
-              type="file" 
-              accept="application/pdf" 
+            <input
+              type="file"
+              accept="application/pdf"
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              required={!initialData} 
+              required={!initialData}
             />
             <div className="flex flex-col items-center pointer-events-none">
               <span className="text-xl mb-1">📄</span>

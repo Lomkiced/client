@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import RetentionMonitor from '../../components/dashboard/RetentionMonitor';
 
 // --- ICONS ---
 const Icons = {
@@ -17,36 +18,29 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-        try {
-            const token = localStorage.getItem('dost_token');
-            const res = await fetch('http://localhost:5000/api/dashboard/stats', { headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.ok) {
-                const data = await res.json();
-                setStats({ ...data, disposal_queue: data.disposal_queue || [] });
-            }
-        } catch (e) { console.error(e); } finally { setLoading(false); }
+      try {
+        const token = localStorage.getItem('dost_token');
+        const res = await fetch('http://localhost:5000/api/dashboard/stats', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          setStats({ ...data, disposal_queue: data.disposal_queue || [] });
+        }
+      } catch (e) { console.error(e); } finally { setLoading(false); }
     };
     fetchData();
   }, []);
-
-  const getDisposalStatus = (date) => {
-      const diff = new Date(date) - new Date();
-      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-      if (days < 0) return { label: 'Action Required', color: 'text-red-600 bg-red-50 border-red-100' };
-      return { label: `${days} Days Remaining`, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' };
-  };
 
   if (loading) return <div className="p-8 text-slate-400 font-bold animate-pulse">Syncing Regional Data...</div>;
 
   return (
     <div className="p-8 min-h-screen bg-slate-50/50 animate-fade-in flex flex-col gap-8">
-      
+
       {/* HEADER */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-3xl p-8 shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2 opacity-80">
-             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-             <span className="text-xs font-bold uppercase tracking-widest">Regional Command</span>
+            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span className="text-xs font-bold uppercase tracking-widest">Regional Command</span>
           </div>
           <h1 className="text-3xl font-bold">{user.region} Dashboard</h1>
           <p className="text-blue-100 mt-2 text-sm max-w-lg">Operational overview and document lifecycle management for your jurisdiction.</p>
@@ -56,19 +50,19 @@ const AdminDashboard = () => {
 
       {/* KEY METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+
         {/* USERS CARD */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between group hover:border-indigo-200 transition-colors">
           <div>
             <div className="flex justify-between items-start mb-4">
-                <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider">Regional Staff</h3>
-                <div className="p-2 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors"><Icons.Users /></div>
+              <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider">Regional Staff</h3>
+              <div className="p-2 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors"><Icons.Users /></div>
             </div>
             <p className="text-4xl font-black text-slate-800">{stats.users}</p>
             <p className="text-xs text-slate-400 mt-1 font-medium">Active Staff Members</p>
           </div>
           <button onClick={() => navigate('/users')} className="mt-4 text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-             Manage Staff →
+            Manage Staff →
           </button>
         </div>
 
@@ -76,16 +70,16 @@ const AdminDashboard = () => {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between group hover:border-emerald-200 transition-colors">
           <div>
             <div className="flex justify-between items-start mb-4">
-                <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider">Active Records</h3>
-                <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-emerald-100 transition-colors">
-                    <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                </div>
+              <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider">Active Records</h3>
+              <div className="p-2 bg-emerald-50 rounded-lg group-hover:bg-emerald-100 transition-colors">
+                <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
             </div>
             <p className="text-4xl font-black text-slate-800">{stats.records}</p>
             <p className="text-xs text-slate-400 mt-1 font-medium">Encrypted & Stored</p>
           </div>
           <button onClick={() => navigate('/registry')} className="mt-4 text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1">
-             Go to Registry →
+            Go to Registry →
           </button>
         </div>
 
@@ -93,8 +87,8 @@ const AdminDashboard = () => {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between group hover:border-amber-200 transition-colors">
           <div>
             <div className="flex justify-between items-start mb-4">
-                <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider">Disposal Alert</h3>
-                <div className="p-2 bg-amber-50 rounded-lg group-hover:bg-amber-100 transition-colors"><Icons.Alert /></div>
+              <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider">Disposal Alert</h3>
+              <div className="p-2 bg-amber-50 rounded-lg group-hover:bg-amber-100 transition-colors"><Icons.Alert /></div>
             </div>
             <p className="text-4xl font-black text-slate-800">{stats.disposal_queue.length}</p>
             <p className="text-xs text-slate-400 mt-1 font-medium">Files Pending Action</p>
@@ -105,33 +99,11 @@ const AdminDashboard = () => {
       {/* DISPOSAL SCHEDULE */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-8">
         <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-            <h3 className="font-bold text-slate-800">Regional Disposal Schedule</h3>
-            <p className="text-xs text-slate-400 mt-1">Files approaching mandatory disposal date based on retention policy.</p>
+          <h3 className="font-bold text-slate-800">Regional Disposal Schedule</h3>
+          <p className="text-xs text-slate-400 mt-1">Files approaching mandatory disposal date based on retention policy.</p>
         </div>
         <div className="p-0">
-            {stats.disposal_queue.length === 0 ? (
-                <div className="p-10 text-center text-slate-400 text-sm">No files currently scheduled for disposal.</div>
-            ) : (
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-xs border-b border-slate-100">
-                        <tr><th className="px-6 py-3">File Name</th><th className="px-6 py-3">Disposal Date</th><th className="px-6 py-3 text-right">Status</th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                        {stats.disposal_queue.map((rec) => {
-                            const status = getDisposalStatus(rec.disposal_date);
-                            return (
-                                <tr key={rec.record_id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-6 py-4 font-bold text-slate-700">{rec.title}</td>
-                                    <td className="px-6 py-4 text-slate-500 font-mono">{new Date(rec.disposal_date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${status.color}`}>{status.label}</span>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            )}
+          <RetentionMonitor disposalQueue={stats.disposal_queue} />
         </div>
       </div>
     </div>
