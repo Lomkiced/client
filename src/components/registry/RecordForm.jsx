@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
 import { useCodex } from '../../context/CodexContext';
 import { useRegions } from '../../context/RegionContext';
@@ -84,7 +85,7 @@ const RecordForm = ({ onClose, onSave, initialData, targetRegion }) => {
     const file = e.target.files[0];
     if (file) {
       if (file.type !== 'application/pdf') {
-        alert('Compliance Alert: Only .pdf files are accepted in the Registry.');
+        toast.error('Compliance Alert: Only .pdf files are accepted in the Registry.');
         e.target.value = null;
         return;
       }

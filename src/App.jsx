@@ -2,6 +2,7 @@ import { Navigate, Route, BrowserRouter as Router, Routes, useLocation } from 'r
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { BrandingProvider } from './context/BrandingContext'; // Ensure this is wrapped
+import { Toaster } from 'sonner';
 import { CodexProvider } from './context/CodexContext';
 import { RegionProvider } from './context/RegionContext';
 import { RegistryProvider } from './context/RegistryContext';
@@ -46,6 +47,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function App() {
   return (
     <ErrorBoundary>
+      <Toaster richColors position="top-right" duration={3000} />
       <BrandingProvider> {/* Wrap everything in Branding */}
         <AuthProvider>
           <RegistryProvider>
@@ -59,7 +61,7 @@ function App() {
 
                       {/* Protected Application Routes */}
                       <Route path="/" element={<MainLayout />}>
-                        
+
                         {/* 1. SUPER ADMIN ROUTES */}
                         <Route path="super-admin" element={
                           <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
@@ -86,7 +88,7 @@ function App() {
                             <AuditTrails />
                           </ProtectedRoute>
                         } />
-                        
+
                         {/* --- NEW BRANDING ROUTE --- */}
                         <Route path="branding" element={
                           <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
